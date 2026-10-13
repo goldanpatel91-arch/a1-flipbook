@@ -1,0 +1,8 @@
+{
+  "name": "a1album",
+  "description": "Luxury 3D digital wedding album and flipbook platform for professional photographers with client share links, calm background music, and point-based management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

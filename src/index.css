@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    background-color: #000000;
+    color: #ffffff;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom glow and glass utilities */
+.glow-lime {
+  box-shadow: 0 0 25px rgba(74, 222, 128, 0.2), inset 0 0 15px rgba(163, 230, 53, 0.08);
+}
+
+.glow-lime-sm {
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.25);
+}
+
+.glow-lime-lg {
+  box-shadow: 0 0 45px rgba(74, 222, 128, 0.28);
+}
+
+.text-gradient-lime {
+  background: linear-gradient(135deg, #a3e635 0%, #4ade80 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-gradient-lime {
+  background: linear-gradient(135deg, #a3e635 0%, #4ade80 100%);
+}
+
+.border-glow-lime {
+  border-color: rgba(74, 222, 128, 0.25);
+}
+
+/* 3D Flipbook transformations */
+.perspective-1500 {
+  perspective: 1500px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4ade80;
+}
