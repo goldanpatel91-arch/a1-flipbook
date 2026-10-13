@@ -32,7 +32,7 @@ export interface AlbumPage {
 
 export interface Album {
   id: string;
-  shareCode: string;
+  shareCode: string; // Unguessable 14+ character ID
   photographerId: string;
   photographerStudioName: string;
   photographerPhone: string;
@@ -45,10 +45,11 @@ export interface Album {
   pages: AlbumPage[];
   musicTrack: string;
   customMusicUrl?: string;
-  allowBulkDownload: boolean;
+  allowBulkDownload: boolean; // default false
   isPasswordProtected: boolean;
   password?: string;
-  expiryDate?: string;
+  expiresAt: string; // 365 days from publication
+  gracePeriodEndsAt: string; // 30 days after expiration
   isWatermarked: boolean;
   watermarkText?: string;
   viewsCount: number;
@@ -76,19 +77,29 @@ export interface PointTransaction {
   photographerId: string;
   photographerName?: string;
   amount: number;
-  type: 'deduct_album' | 'purchase' | 'admin_adjust';
+  type: 'deduct_album' | 'purchase' | 'admin_adjust' | 'renew_album';
   description: string;
   date: string;
   referenceId?: string;
   pricePaidInr?: number;
+  rateAppliedInr?: number; // Snapshot of rate at time of purchase
 }
 
-export interface MusicTrack {
+export interface PointSettings {
+  pricePerPointInr: number; // default 89
+  pointsPerAlbum: number; // default 10
+  renewalPointsPerAlbum: number; // default 1
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface RateChangeLog {
   id: string;
-  title: string;
-  genre: string;
-  artist: string;
-  duration: string;
-  description: string;
-  notes: number[];
+  date: string;
+  oldRate: number;
+  newRate: number;
+  oldPointsPerAlbum: number;
+  newPointsPerAlbum: number;
+  changedBy: string;
+  reason: string;
 }

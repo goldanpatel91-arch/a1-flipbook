@@ -7,20 +7,20 @@ import {
   Smartphone,
   Lock,
   Download,
-  Coins,
   ArrowRight,
   CheckCircle,
-  ExternalLink,
   Camera,
   Play,
   Layers,
   Shield,
   MessageCircle,
   Send,
-  Zap,
+  Mail,
+  Phone,
+  Globe,
+  Award,
 } from 'lucide-react';
 import { Album } from '../types';
-import { POINT_PRICE_INR, RECHARGE_PACKS } from '../data/mockData';
 
 interface LandingPageProps {
   onOpenAuth: (role?: 'photographer' | 'admin') => void;
@@ -39,6 +39,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [inquiryMessage, setInquiryMessage] = useState('');
   const [inquirySent, setInquirySent] = useState(false);
 
+  const helpDeskWhatsAppUrl =
+    'https://wa.me/917970641503?text=Namaste%20Goldan%20ji,%20mujhe%20a1album%20ke%20bare%20mein%20sahayata%20chahiye.';
+
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setInquirySent(true);
@@ -55,17 +58,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     <div className="min-h-screen bg-black text-white selection:bg-lime-400 selection:text-black">
       {/* HERO SECTION */}
       <section className="relative pt-12 pb-24 lg:pt-20 lg:pb-32 overflow-hidden">
-        {/* Ambient Lime-to-Mint Glow Halos */}
+        {/* Ambient Lime-to-Mint Glow Halo */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-tr from-lime-500/10 via-emerald-500/10 to-transparent blur-[140px] pointer-events-none rounded-full" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* Left Column: 3-line Headline & CTAs */}
+            {/* Left Column: Headline & Action Buttons */}
             <div className="lg:col-span-7 space-y-8 text-left">
-              {/* Top Green Pill Badge */}
+              {/* Top Pill Badge: "3D FLIPBOOK PLATFORM" */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-lime-400 text-black text-xs font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(163,230,53,0.35)]">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI-Powered Wedding Flipbook Builder</span>
+                <span>3D Flipbook Platform</span>
               </div>
 
               {/* 3-Line Headline with Gradient Last Line */}
@@ -100,31 +103,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span>Photographer Sign In</span>
                 </button>
               </div>
-
-              {/* Pricing Callout in Hero */}
-              <div className="pt-2 text-xs text-neutral-400 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
-                <span>Zero monthly lock-in · Only ₹89 per point (10 points per complete album)</span>
-              </div>
             </div>
 
             {/* Right Column: Tilted 3D Flipbook Mockup with Floating Chips */}
             <div className="lg:col-span-5 relative flex items-center justify-center">
-              {/* Floating Chips (As seen in user screenshot) */}
               <div className="relative w-full max-w-md perspective-1500 group">
-                {/* Floating Top Right Tag */}
+                {/* Floating Chip 1: 3D Page Flip */}
                 <div className="absolute -top-4 -right-4 z-20 bg-neutral-900/90 backdrop-blur-md border border-lime-400/50 rounded-2xl p-2.5 px-4 shadow-[0_10px_25px_rgba(0,0,0,0.8),0_0_15px_rgba(74,222,128,0.2)] flex items-center gap-2.5 animate-bounce">
                   <div className="w-3 h-3 rounded-full bg-lime-400" />
                   <span className="text-xs font-bold text-white">3D Page Flip</span>
                 </div>
 
-                {/* Floating Middle Right Tag */}
+                {/* Floating Chip 2: Calm Music */}
                 <div className="absolute top-28 -right-8 z-20 bg-neutral-900/90 backdrop-blur-md border border-lime-400/40 rounded-2xl p-2 px-3.5 shadow-xl flex items-center gap-2">
                   <Music className="w-3.5 h-3.5 text-lime-400" />
                   <span className="text-xs font-semibold text-white">Calm Music</span>
                 </div>
 
-                {/* Floating Bottom Right Tag */}
+                {/* Floating Chip 3: WhatsApp Share */}
                 <div className="absolute -bottom-4 -right-2 z-20 bg-neutral-900/90 backdrop-blur-md border border-lime-400/40 rounded-2xl p-2 px-3.5 shadow-xl flex items-center gap-2">
                   <Share2 className="w-3.5 h-3.5 text-lime-400" />
                   <span className="text-xs font-semibold text-white">WhatsApp Share</span>
@@ -135,7 +131,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={onExploreDemo}
                   className="w-full bg-[#0d1117] border border-lime-400/30 rounded-3xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(74,222,128,0.15)] transform rotate-[-4deg] group-hover:rotate-0 transition-transform duration-500 cursor-pointer p-4 pb-6"
                 >
-                  {/* Mockup Header Bar */}
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-neutral-800 text-[11px] text-neutral-400">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -143,10 +138,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                       <span className="ml-2 font-mono text-lime-400 font-bold">a1album.in/demo</span>
                     </div>
-                    <span className="text-neutral-500">3D Interactive</span>
+                    <span className="text-neutral-500">Real StPageFlip</span>
                   </div>
 
-                  {/* Album Cover Inside Mockup */}
+                  {/* Album Cover inside Mockup */}
                   <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-neutral-900">
                     <img
                       src={sampleAlbum.coverImage}
@@ -160,13 +155,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <h3 className="text-lg font-bold text-white mb-1">{sampleAlbum.coupleName}</h3>
                       <p className="text-[10px] text-neutral-400 mb-2">Royal Heritage Wedding Films</p>
                       <span className="inline-flex items-center gap-1.5 text-xs text-lime-300 font-bold">
-                        <span>Click to Flip Spreads</span>
+                        <span>Click to Flip Real Spreads</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
                   </div>
 
-                  {/* Bottom Palette Swatches (As in screenshot) */}
                   <div className="mt-4 flex items-center justify-between pt-2">
                     <div className="flex items-center gap-2">
                       <span className="w-5 h-5 rounded-full bg-lime-400 shadow-[0_0_10px_rgba(163,230,53,0.5)]" />
@@ -174,7 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <span className="w-5 h-5 rounded-full bg-teal-400" />
                       <span className="w-5 h-5 rounded-full bg-white" />
                     </div>
-                    <span className="text-[10px] text-neutral-400 font-mono">100% Mobile Ready</span>
+                    <span className="text-[10px] text-neutral-400 font-mono">1-Year Live Validity</span>
                   </div>
                 </div>
               </div>
@@ -189,28 +183,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-neutral-800">
             <div className="pt-2 md:pt-0">
               <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">3D Flip</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Smooth page turn physics</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Real paper fold & curl</p>
             </div>
             <div className="pt-2 md:pt-0">
-              <p className="text-2xl sm:text-3xl font-extrabold text-lime-400 font-mono">Music</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Calm wedding soundtrack</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-lime-400 font-mono">Calm Music</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Velvety wedding audio</p>
             </div>
             <div className="pt-2 md:pt-0">
-              <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">100%</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Mobile touch & pinch zoom</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">Landscape</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Smart mobile dual spread</p>
             </div>
             <div className="pt-2 md:pt-0">
               <p className="text-2xl sm:text-3xl font-extrabold text-lime-400 font-mono">WhatsApp</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Single-tap direct sharing</p>
+              <p className="text-xs text-neutral-400 mt-0.5">Instant couple lead generation</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS (Matching Screenshot 2) */}
+      {/* HOW IT WORKS */}
       <section id="how-it-works" className="py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
-          {/* Top Pill & Headline */}
           <div className="space-y-3 max-w-2xl mx-auto">
             <div className="inline-block px-3.5 py-1 rounded-full bg-lime-400 text-black text-xs font-bold uppercase tracking-wider">
               HOW IT WORKS
@@ -223,33 +216,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
 
-          {/* 3 Dark Glass Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            {/* Card 1: Upload */}
+            {/* Card 1 */}
             <div className="bg-neutral-950 border border-neutral-800 hover:border-lime-400/50 rounded-2xl p-8 space-y-5 transition-all hover:shadow-[0_0_30px_rgba(74,222,128,0.12)]">
               <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center text-lime-400">
                 <Layers className="w-6 h-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">01. Upload & Compress</h3>
+                <h3 className="text-xl font-bold text-white">01. Upload & Auto-Compress</h3>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Upload raw wedding spreads. Our fast multi-worker canvas engine optimizes images in parallel, preserving 2560px luxury print resolution while saving 75% file storage.
+                  Upload raw wedding photos. Our multi-worker canvas engine compresses files in parallel, preserving 2560px luxury print resolution while saving 75% file storage.
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-[11px] font-mono text-lime-400">
-                Parallel canvas compression · Zero lag
+                Parallel canvas compression · Spread splitter
               </div>
             </div>
 
-            {/* Card 2: Customize */}
+            {/* Card 2 */}
             <div className="bg-neutral-950 border border-neutral-800 hover:border-lime-400/50 rounded-2xl p-8 space-y-5 transition-all hover:shadow-[0_0_30px_rgba(74,222,128,0.12)]">
               <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center text-lime-400">
                 <Music className="w-6 h-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">02. Customize Experience</h3>
+                <h3 className="text-xl font-bold text-white">02. Customize & Protect</h3>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Select soothing piano or acoustic wedding melodies, set optional PIN codes for private access, apply subtle studio watermark protection, and configure bulk download rules.
+                  Select soothing piano or acoustic wedding melodies, set optional PIN codes for private access, apply subtle studio watermark protection, and configure bulk download permissions.
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-[11px] font-mono text-lime-400">
@@ -257,7 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            {/* Card 3: Share */}
+            {/* Card 3 */}
             <div className="bg-neutral-950 border border-neutral-800 hover:border-lime-400/50 rounded-2xl p-8 space-y-5 transition-all hover:shadow-[0_0_30px_rgba(74,222,128,0.12)]">
               <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center text-lime-400">
                 <Share2 className="w-6 h-6" />
@@ -265,110 +257,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-white">03. Share & Get Leads</h3>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Send unguessable client links. Guests view the album like a real book, share individual photos on WhatsApp, and book your studio directly through the built-in lead engine.
+                  Send unguessable 1-year valid client links. Guests view the album like a real book, share photos on WhatsApp, and book your studio directly through the built-in lead engine.
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-[11px] font-mono text-lime-400">
-                Unguessable URL · Direct WhatsApp bookings
+                1-Year Validity · Direct WhatsApp bookings
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PRICING & POINTS SECTION (Clear ₹89/point) */}
-      <section id="pricing" className="py-24 bg-neutral-950/60 border-t border-neutral-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-center">
-          <div className="space-y-3 max-w-2xl mx-auto">
-            <div className="inline-block px-3.5 py-1 rounded-full bg-lime-400 text-black text-xs font-bold uppercase tracking-wider">
-              PRICING & POINTS
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-              Pay per album. <span className="text-gradient-lime">Exact ₹89 per point.</span>
-            </h2>
-            <p className="text-sm text-neutral-400">
-              1 Wedding Album = 10 Points = ₹890. No monthly subscription or hidden fees.
-            </p>
-          </div>
-
-          {/* Pricing Packs Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-5xl mx-auto">
-            {RECHARGE_PACKS.map((pack) => (
-              <div
-                key={pack.id}
-                className={`rounded-2xl p-8 flex flex-col justify-between transition-all relative ${
-                  pack.popular
-                    ? 'bg-neutral-900 border-2 border-lime-400 shadow-[0_0_35px_rgba(74,222,128,0.2)]'
-                    : 'bg-neutral-950 border border-neutral-800'
-                }`}
-              >
-                {pack.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-lime text-black font-extrabold text-xs px-3 py-0.5 rounded-full uppercase tracking-wider">
-                    Most Popular Choice
-                  </span>
-                )}
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{pack.name}</h3>
-                    <p className="text-xs text-neutral-400">{pack.tag}</p>
-                  </div>
-
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-white font-mono">₹{pack.priceInr}</span>
-                    <span className="text-xs text-neutral-400">/ one-time</span>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-black/60 border border-neutral-800 text-xs">
-                    <span className="text-lime-400 font-bold">{pack.points} Points</span>
-                    <span className="text-neutral-400"> ({pack.albumsCount} Full Wedding Albums)</span>
-                    <p className="text-[10px] text-neutral-500 mt-0.5">{pack.savingsText}</p>
-                  </div>
-
-                  <ul className="space-y-2.5 text-xs text-neutral-300 pt-2">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-lime-400 shrink-0" />
-                      <span>Smooth 3D page curl engine</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-lime-400 shrink-0" />
-                      <span>Calming ambient wedding audio</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-lime-400 shrink-0" />
-                      <span>Unguessable client links</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-lime-400 shrink-0" />
-                      <span>Studio WhatsApp lead generation</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-lime-400 shrink-0" />
-                      <span>Optional PIN & watermark protection</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="pt-8">
-                  <button
-                    onClick={() => onOpenAuth('photographer')}
-                    className={`w-full py-3 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                      pack.popular
-                        ? 'bg-lime-400 hover:bg-lime-300 text-black shadow-[0_0_20px_rgba(163,230,53,0.35)]'
-                        : 'bg-white hover:bg-neutral-200 text-black'
-                    }`}
-                  >
-                    Select {pack.points} Pts Pack
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES GRID (Matching Screenshot 3) */}
-      <section id="features" className="py-24">
+      {/* FEATURES GRID */}
+      <section id="features" className="py-24 bg-neutral-950/60 border-t border-neutral-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-center">
           <div className="space-y-3 max-w-2xl mx-auto">
             <div className="inline-block px-3.5 py-1 rounded-full bg-lime-400 text-black text-xs font-bold uppercase tracking-wider">
@@ -384,9 +285,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
             <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 space-y-3">
-              <h4 className="text-base font-bold text-white">Realistic 3D Page Flip</h4>
+              <h4 className="text-base font-bold text-white">StPageFlip Real Paper Engine</h4>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Realistic corner dragging, physics-based shadow curvature, and authentic paper leaf sound effects.
+                Realistic corner dragging, physics-based shadow curvature, authentic paper leaf sound effects, and zero vertical letterbox bars.
               </p>
             </div>
 
@@ -398,16 +299,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 space-y-3">
-              <h4 className="text-base font-bold text-white">Fast Parallel Compression</h4>
+              <h4 className="text-base font-bold text-white">Smart Mobile Landscape</h4>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Processes raw camera files concurrently, shrinking storage by 75% while keeping 2560px print crispness.
+                Automated rotation guidance so mobile viewers experience the luxury coffee-table double-page spread.
               </p>
             </div>
 
             <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 space-y-3">
-              <h4 className="text-base font-bold text-white">Spread Splitter</h4>
+              <h4 className="text-base font-bold text-white">1-Year Live Validity & Renewal</h4>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                1-click split tool to turn wide panoramic double-page wedding layouts into separate left and right leaves.
+                Every album stays live for 365 days. 30-day renewal warnings ensure uninterrupted access with 1-point extensions.
               </p>
             </div>
 
@@ -428,22 +329,59 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* STUDIO CONTACT & INQUIRY SECTION */}
-      <section id="contact" className="py-20 bg-neutral-950/80 border-t border-neutral-900">
+      {/* CONTACT & HELP DESK SECTION */}
+      <section id="contact" className="py-20 border-t border-neutral-900">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-8">
           <div className="space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Have Questions or Need a Custom Studio Plan?</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Help Desk & Customer Support</h2>
             <p className="text-xs text-neutral-400">
-              Get in touch with our team for bulk studio onboardings or feature requests.
+              Koi bhi problem, points recharge query ya custom studio features ke liye turant sampark karein.
             </p>
+          </div>
+
+          {/* Quick WhatsApp & Email Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+            <a
+              href={helpDeskWhatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 hover:border-emerald-500/50 transition-all flex items-center gap-4 group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                <MessageCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-400">WhatsApp Help Desk</p>
+                <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
+                  +91 7970641503
+                </p>
+                <p className="text-[10px] text-emerald-400 font-medium">Goldan Patel · Instant Reply</p>
+              </div>
+            </a>
+
+            <a
+              href="mailto:nepoliancinematicstudio@gmail.com"
+              className="p-5 rounded-2xl bg-neutral-950 border border-neutral-800 hover:border-lime-400/50 transition-all flex items-center gap-4 group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-700 text-lime-400 flex items-center justify-center shrink-0">
+                <Mail className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-400">Direct Support Email</p>
+                <p className="text-xs font-bold text-white truncate max-w-[180px] group-hover:text-lime-300 transition-colors">
+                  nepoliancinematicstudio@gmail.com
+                </p>
+                <p className="text-[10px] text-neutral-500">Official Help Desk</p>
+              </div>
+            </a>
           </div>
 
           {inquirySent ? (
             <div className="p-6 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-sm font-medium">
-              Thank you! Your inquiry has been received. Our team will contact you shortly.
+              Thank you! Your inquiry has been sent directly to Nepolian Cinematic Studio.
             </div>
           ) : (
-            <form onSubmit={handleContactSubmit} className="space-y-4 text-left">
+            <form onSubmit={handleContactSubmit} className="space-y-4 text-left pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input
                   type="text"
@@ -463,19 +401,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 />
               </div>
 
-              <input
-                type="email"
-                required
-                placeholder="Email Address"
-                value={inquiryEmail}
-                onChange={(e) => setInquiryEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-white placeholder:text-neutral-500 focus:border-lime-400 focus:outline-none"
-              />
-
               <textarea
                 rows={3}
                 required
-                placeholder="How can we assist your photography studio?"
+                placeholder="Message / Studio Query"
                 value={inquiryMessage}
                 onChange={(e) => setInquiryMessage(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-white placeholder:text-neutral-500 focus:border-lime-400 focus:outline-none"
@@ -486,21 +415,128 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="w-full py-3.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-bold text-xs transition-all shadow-[0_0_20px_rgba(163,230,53,0.3)] flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Send Studio Inquiry</span>
+                <span>Send Message to Support</span>
               </button>
             </form>
           )}
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-neutral-900 py-10 text-center text-xs text-neutral-500 space-y-4">
-        <div className="flex items-center justify-center gap-2">
-          <Camera className="w-4 h-4 text-lime-400" />
-          <span className="font-bold text-white text-sm">a1album</span>
-          <span>· Luxury Digital Wedding Album & Flipbook Platform</span>
+      {/* COMPREHENSIVE FOOTER & ABOUT SECTION (Exact Prompt Requirements) */}
+      <footer className="border-t border-neutral-900 bg-neutral-950/90 py-16 text-xs text-neutral-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          {/* Top Brand & Leadership Lockup */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10 border-b border-neutral-800/80">
+            {/* Column 1: About Platform */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-lime-400/40 flex items-center justify-center text-lime-400">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <span className="text-base font-bold text-white tracking-tight">a1album</span>
+              </div>
+              <p className="text-xs text-neutral-300 leading-relaxed font-medium">
+                India's fastest wedding album flipbook platform for professional photographers.
+              </p>
+              <div className="pt-2 text-[11px] text-neutral-400">
+                <p className="font-semibold text-white">Associated by: NEPOLIAN CINEMATIC STUDIO</p>
+                <p className="text-lime-400">Since 2018</p>
+              </div>
+            </div>
+
+            {/* Column 2: Leadership & Vision */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Award className="w-4 h-4 text-lime-400" />
+                <span>Leadership & Vision</span>
+              </h4>
+              <p className="font-bold text-white text-sm">Goldan Patel</p>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Founder & Creative Director at Nepolian Cinematic Studio. Serving wedding photographers across India since 2018.
+              </p>
+            </div>
+
+            {/* Column 3: Customer Support & Help Desk */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                Customer Support & Help Desk
+              </h4>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Koi bhi problem, points recharge query ya custom features ke liye turant sampark karein.
+              </p>
+              <div className="space-y-1 text-xs">
+                <a
+                  href={helpDeskWhatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 hover:underline flex items-center gap-1.5"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>WhatsApp: +91 7970641503</span>
+                </a>
+                <a
+                  href="mailto:nepoliancinematicstudio@gmail.com"
+                  className="text-neutral-300 hover:text-white flex items-center gap-1.5"
+                >
+                  <Mail className="w-3.5 h-3.5 text-lime-400" />
+                  <span>nepoliancinematicstudio@gmail.com</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Group of Creative Ventures Brands */}
+          <div className="space-y-4">
+            <h5 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
+              Our Other Brands (Nepolian Cinematic Studio Group of Creative Ventures)
+            </h5>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                <p className="font-bold text-white">NCS Studio</p>
+                <p className="text-[10px] text-neutral-400">Cinematography</p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                <p className="font-bold text-white">A1 Flip Book</p>
+                <p className="text-[10px] text-neutral-400">Album Design</p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                <p className="font-bold text-white">A1 Designing Agency</p>
+                <p className="text-[10px] text-neutral-400">Creative Media</p>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-900/60 border border-neutral-800">
+                <p className="font-bold text-white">A1 Smart Selection</p>
+                <p className="text-[10px] text-neutral-400">Photo Selection</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Links & Copyright */}
+          <div className="pt-8 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+            <div className="flex items-center gap-6 font-medium">
+              <button
+                onClick={() => onOpenAuth('photographer')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Photographer Login
+              </button>
+              <button
+                onClick={() => onOpenAuth('photographer')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                New Studio Signup
+              </button>
+              <button
+                onClick={() => onOpenAuth('admin')}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                Admin Portal
+              </button>
+            </div>
+            <p className="text-center sm:text-right">
+              © 2018-2026 NEPOLIAN CINEMATIC STUDIO. All rights reserved. Founded by Goldan Patel.
+            </p>
+          </div>
         </div>
-        <p>© 2026 a1album Technologies. High-resolution 3D wedding galleries for professional photographers.</p>
       </footer>
     </div>
   );

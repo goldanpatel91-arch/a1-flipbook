@@ -16,17 +16,27 @@ import {
   DollarSign,
   AlertOctagon,
   Sparkles,
+  Settings,
+  Calendar,
+  Trash2,
+  RefreshCw,
+  FileText,
 } from 'lucide-react';
-import { Photographer, Album, PointTransaction } from '../types';
-import { POINT_PRICE_INR } from '../data/mockData';
+import { Photographer, Album, PointTransaction, PointSettings, RateChangeLog } from '../types';
+import { formatDisplayDate, getDaysRemaining } from '../data/mockData';
 
 interface AdminDashboardProps {
   photographers: Photographer[];
   albums: Album[];
   transactions: PointTransaction[];
+  pointSettings: PointSettings;
+  rateLogs: RateChangeLog[];
   onAdjustPoints: (photographerId: string, amount: number, reason: string) => void;
   onToggleBlock: (photographerId: string) => void;
   onResetPassword: (photographerId: string, newPass: string) => void;
+  onUpdatePointSettings: (newSettings: PointSettings, reason: string) => void;
+  onExtendAlbumValidity: (albumId: string, additionalDays: number) => void;
+  onDeleteAlbum: (albumId: string) => void;
   onViewAlbum: (album: Album) => void;
 }
 
@@ -34,12 +44,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   photographers,
   albums,
   transactions,
+  pointSettings,
+  rateLogs,
   onAdjustPoints,
   onToggleBlock,
   onResetPassword,
+  onUpdatePointSettings,
+  onExtendAlbumValidity,
+  onDeleteAlbum,
   onViewAlbum,
 }) => {
-  const [activeTab, setActiveTab] = useState<'studios' | 'albums' | 'transactions'>('studios');
+  const [activeTab, setActiveTab] = useState<'studios' | 'albums' | 'settings' | 'logs'>('studios');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Point Adjustment Modal State
@@ -52,6 +67,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [passwordModalPhotographer, setPasswordModalPhotographer] = useState<Photographer | null>(null);
   const [newPassword, setNewPassword] = useState<string>('Pass2026!');
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+
+  // Point Settings Form State
+  const [editPricePerPoint, setEditPricePerPoint] = useState<number>(pointSettings.pricePerPointInr);
+  const [editPointsPerAlbum, setEditPointsPerAlbum] = useState<number>(pointSettings.pointsPerAlbum);
+  const [editRenewalPoints, setEditRenewalPoints] = useState<number>(pointSettings.renewalPointsPerAlbum);
+  const [settingsChangeReason, setSettingsChangeReason] = useState<string>('Rate update');
+  const [settingsSavedToast, setSettingsSavedToast] = useState<boolean>(false);
 
   // Filtered lists
   const filteredPhotographers = photographers.filter(
@@ -88,6 +110,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, 1500);
   };
 
+  const handleSaveSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdatePointSettings(
+      {
+        pricePerPointInr: editPricePerPoint,
+        pointsPerAlbum: editPointsPerAlbum,
+        renewalPointsPerAlbum: editRenewalPoints,
+        updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        updatedBy: 'Goldan Patel (Superadmin)',
+      },
+      settingsChangeReason
+    );
+    setSettingsSavedToast(true);
+    setTimeout(() => setSettingsSavedToast(false), 2500);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -105,7 +143,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </span>
               </div>
               <p className="text-xs text-neutral-400">
-                Full authority: point economy (₹{POINT_PRICE_INR}/pt), photographer suspension, audit trails & live metrics.
+                Current Rate: ₹{pointSettings.pricePerPointInr}/pt · {pointSettings.pointsPerAlbum} Pts/Album · {pointSettings.renewalPointsPerAlbum} Pt/Renewal
               </p>
             </div>
           </div>
@@ -141,7 +179,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <p className="text-3xl font-extrabold text-lime-400 font-mono">{totalPointsInCirculation}</p>
             <p className="text-[11px] text-neutral-500 mt-1">
-              ₹{(totalPointsInCirculation * POINT_PRICE_INR).toLocaleString('en-IN')} Current Liability
+              ₹{(totalPointsInCirculation * pointSettings.pricePerPointInr).toLocaleString('en-IN')} Current Liability
             </p>
           </div>
 
@@ -181,28 +219,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               All Published Albums ({albums.length})
             </button>
             <button
-              onClick={() => setActiveTab('transactions')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'transactions'
+              onClick={() => setActiveTab('settings')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'settings'
                   ? 'bg-lime-400 text-black shadow-md'
                   : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
               }`}
             >
-              Audit Ledger & Activity Logs ({transactions.length})
+              <Settings className="w-3.5 h-3.5" />
+              <span>Point Rate Settings</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'logs'
+                  ? 'bg-lime-400 text-black shadow-md'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Audit Ledger & Logs ({transactions.length})</span>
             </button>
           </div>
 
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search studio, photographer, phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs text-white placeholder:text-neutral-500 focus:border-lime-400 focus:outline-none w-64"
-            />
-          </div>
+          {activeTab === 'studios' && (
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search studio, photographer, phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs text-white placeholder:text-neutral-500 focus:border-lime-400 focus:outline-none w-64"
+              />
+            </div>
+          )}
         </div>
 
         {/* TAB 1: PHOTOGRAPHER STUDIOS MANAGEMENT */}
@@ -223,7 +274,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <tbody className="divide-y divide-neutral-900 text-neutral-200">
                   {filteredPhotographers.map((photo) => (
                     <tr key={photo.id} className="hover:bg-neutral-900/50 transition-colors">
-                      {/* Name & Studio */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center font-bold text-lime-400">
@@ -236,13 +286,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       </td>
 
-                      {/* Contact */}
                       <td className="px-4 py-4 font-mono text-neutral-400">
                         <p>{photo.phone}</p>
                         <p className="text-[10px] text-neutral-500">{photo.email}</p>
                       </td>
 
-                      {/* Status */}
                       <td className="px-4 py-4">
                         {photo.isBlocked ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-950/60 text-red-400 border border-red-500/40">
@@ -257,12 +305,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                       </td>
 
-                      {/* Albums */}
                       <td className="px-4 py-4 font-mono">
                         <span className="text-white font-semibold">{photo.totalAlbumsCreated}</span> Albums
                       </td>
 
-                      {/* Point Balance */}
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1.5 font-mono">
                           <Coins className="w-3.5 h-3.5 text-lime-400" />
@@ -277,10 +323,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       </td>
 
-                      {/* Admin Controls */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {/* Modify Points Button */}
                           <button
                             onClick={() => {
                               setPointModalPhotographer(photo);
@@ -294,7 +338,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <span>Adjust Pts</span>
                           </button>
 
-                          {/* Reset Password Button */}
                           <button
                             onClick={() => setPasswordModalPhotographer(photo)}
                             className="p-1.5 rounded-lg bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-neutral-300 hover:text-white transition-colors cursor-pointer"
@@ -303,7 +346,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <KeyRound className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Block / Unblock Toggle */}
                           <button
                             onClick={() => onToggleBlock(photo.id)}
                             className={`p-1.5 rounded-lg border text-xs transition-colors cursor-pointer ${
@@ -325,73 +367,243 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* TAB 2: ALL PUBLISHED ALBUMS INSPECTION */}
+        {/* TAB 2: ALL ALBUMS & VALIDITY EXTENSION */}
         {activeTab === 'albums' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {albums.map((album) => (
-              <div
-                key={album.id}
-                className="bg-neutral-950 border border-neutral-800 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-44 relative bg-neutral-900">
-                    <img src={album.coverImage} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent p-4 flex flex-col justify-end">
-                      <p className="text-[10px] text-lime-400 uppercase font-semibold">{album.eventName}</p>
-                      <h4 className="text-base font-bold text-white">{album.coupleName}</h4>
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-2 text-xs text-neutral-400">
-                    <p className="text-white font-medium">Studio: {album.photographerStudioName}</p>
-                    <p>Client Mobile: {album.clientPhone}</p>
-                    <div className="flex items-center justify-between text-[11px] pt-2 border-t border-neutral-900 font-mono">
-                      <span>{album.pages.length} Pages</span>
-                      <span className="text-lime-400">{album.viewsCount} Views</span>
-                    </div>
-                  </div>
-                </div>
+            {albums.map((album) => {
+              const daysLeft = getDaysRemaining(album.expiresAt);
+              const isExpired = daysLeft <= 0;
 
-                <div className="p-4 pt-0">
-                  <button
-                    onClick={() => onViewAlbum(album)}
-                    className="w-full py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Audit / Preview 3D Flipbook</span>
-                  </button>
+              return (
+                <div
+                  key={album.id}
+                  className="bg-neutral-950 border border-neutral-800 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="h-44 relative bg-neutral-900">
+                      <img src={album.coverImage} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent p-4 flex flex-col justify-end">
+                        <p className="text-[10px] text-lime-400 uppercase font-semibold">{album.eventName}</p>
+                        <h4 className="text-base font-bold text-white">{album.coupleName}</h4>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-2.5 text-xs text-neutral-400">
+                      <p className="text-white font-medium">Studio: {album.photographerStudioName}</p>
+                      <p className="font-mono text-[11px]">ID: {album.shareCode}</p>
+
+                      <div className="p-2 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-between font-mono text-[11px]">
+                        <span>Expires: {formatDisplayDate(album.expiresAt)}</span>
+                        <span className={isExpired ? 'text-red-400 font-bold' : 'text-lime-400 font-bold'}>
+                          {isExpired ? 'EXPIRED' : `${daysLeft}d left`}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] pt-1">
+                        <span>{album.pages.length} Pages</span>
+                        <span className="text-lime-400">{album.viewsCount} Views</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 pt-0 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => onViewAlbum(album)}
+                        className="py-2 rounded-xl bg-neutral-900 border border-neutral-700 hover:border-lime-400 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-lime-400" />
+                        <span>Inspect Book</span>
+                      </button>
+
+                      <button
+                        onClick={() => onExtendAlbumValidity(album.id, 365)}
+                        className="py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        title="Extend validity by +1 Year"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>+1 Year Ext.</span>
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => onDeleteAlbum(album.id)}
+                      className="w-full py-1.5 rounded-lg bg-neutral-900 hover:bg-red-950 text-red-400 text-[11px] font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete Album</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
-        {/* TAB 3: AUDIT LEDGER */}
-        {activeTab === 'transactions' && (
-          <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-white">Platform Transaction & Activity Log</h3>
-            <div className="divide-y divide-neutral-900 text-xs">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="py-3.5 flex items-center justify-between gap-4">
-                  <div className="space-y-0.5">
-                    <p className="font-semibold text-white">{tx.description}</p>
-                    <p className="text-[10px] text-neutral-500 font-mono">
-                      Ref: {tx.referenceId || tx.id} · {tx.date}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`font-mono font-bold text-sm ${
-                        tx.amount > 0 ? 'text-lime-400' : 'text-red-400'
-                      }`}
-                    >
-                      {tx.amount > 0 ? `+${tx.amount}` : tx.amount} Points
-                    </span>
-                    {tx.pricePaidInr && (
-                      <p className="text-[10px] text-neutral-400">₹{tx.pricePaidInr.toLocaleString('en-IN')}</p>
-                    )}
-                  </div>
+        {/* TAB 3: POINT RATE SETTINGS (Prompt Section 6) */}
+        {activeTab === 'settings' && (
+          <div className="max-w-2xl bg-neutral-950 border border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="border-b border-neutral-800 pb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-lime-400" />
+                <span>Point Rate & Platform Economics Settings</span>
+              </h3>
+              <p className="text-xs text-neutral-400">
+                Configure global price per point, album cost, and renewal fees. Changes apply only to future purchases and are fully logged.
+              </p>
+            </div>
+
+            {settingsSavedToast && (
+              <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>Point rate settings updated and recorded in audit log!</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSettings} className="space-y-5">
+              <div>
+                <label className="text-xs font-semibold text-neutral-300 mb-1 block">
+                  Price Per Point (in INR ₹)
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono text-lime-400">₹</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    required
+                    value={editPricePerPoint}
+                    onChange={(e) => setEditPricePerPoint(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-white font-mono text-sm focus:border-lime-400 focus:outline-none"
+                  />
                 </div>
-              ))}
+                <p className="text-[10px] text-neutral-500 mt-1">
+                  Default: ₹89 per point. Photographers will see this updated rate in their recharge modal.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-neutral-300 mb-1 block">
+                    Points Required to Create 1 Album
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    required
+                    value={editPointsPerAlbum}
+                    onChange={(e) => setEditPointsPerAlbum(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-white font-mono text-sm focus:border-lime-400 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-neutral-500 mt-1">
+                    Default: 10 Points (= ₹{editPricePerPoint * editPointsPerAlbum} total cost)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-neutral-300 mb-1 block">
+                    Points Required for +1 Year Renewal
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    required
+                    value={editRenewalPoints}
+                    onChange={(e) => setEditRenewalPoints(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-white font-mono text-sm focus:border-lime-400 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-neutral-500 mt-1">
+                    Default: 1 Point (= ₹{editPricePerPoint * editRenewalPoints})
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-neutral-300 mb-1 block">
+                  Reason for Rate Update (Mandatory Audit Trail)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Festival promo rate adjustment / server infrastructure costs"
+                  value={settingsChangeReason}
+                  onChange={(e) => setSettingsChangeReason(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-xs text-white focus:border-lime-400 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-extrabold text-xs transition-colors shadow-lg cursor-pointer"
+              >
+                Save & Update Platform Rate
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 4: AUDIT LEDGER & RATE CHANGE LOGS */}
+        {activeTab === 'logs' && (
+          <div className="space-y-6">
+            {/* Rate Change History */}
+            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Clock className="w-4 h-4 text-lime-400" />
+                <span>Point Rate Modification History</span>
+              </h3>
+              <div className="divide-y divide-neutral-900 text-xs">
+                {rateLogs.map((log) => (
+                  <div key={log.id} className="py-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-white">
+                        Changed from ₹{log.oldRate}/pt to <span className="text-lime-400 font-bold">₹{log.newRate}/pt</span>
+                      </p>
+                      <p className="text-[10px] text-neutral-500 font-mono">
+                        {log.date} · Changed by {log.changedBy}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[11px] text-neutral-300 italic">"{log.reason}"</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* General Point Transactions */}
+            <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <FileText className="w-4 h-4 text-lime-400" />
+                <span>Financial & Point Circulation Ledger</span>
+              </h3>
+              <div className="divide-y divide-neutral-900 text-xs">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="py-3.5 flex items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-white">{tx.description}</p>
+                      <p className="text-[10px] text-neutral-500 font-mono">
+                        Ref: {tx.referenceId || tx.id} · {tx.date}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`font-mono font-bold text-sm ${
+                          tx.amount > 0 ? 'text-lime-400' : 'text-red-400'
+                        }`}
+                      >
+                        {tx.amount > 0 ? `+${tx.amount}` : tx.amount} Points
+                      </span>
+                      {tx.pricePaidInr && (
+                        <p className="text-[10px] text-neutral-400">
+                          ₹{tx.pricePaidInr.toLocaleString('en-IN')}{' '}
+                          {tx.rateAppliedInr && `(@ ₹${tx.rateAppliedInr}/pt)`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -465,7 +677,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     placeholder="e.g. Bank transfer credit / Promotional bonus / Correction"
                     value={adjustmentReason}
                     onChange={(e) => setAdjustmentReason(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-700 text-xs text-white focus:border-lime-400 focus:outline-none"
+                    className="w-full px-3 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-xs text-white focus:border-lime-400 focus:outline-none"
                   />
                 </div>
 
@@ -510,7 +722,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-700 text-xs text-white font-mono focus:border-lime-400 focus:outline-none"
+                      className="w-full px-3 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-xs text-white font-mono focus:border-lime-400 focus:outline-none"
                     />
                   </div>
                   <button

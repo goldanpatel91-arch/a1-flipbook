@@ -22,14 +22,20 @@ import {
   Shield,
   Split,
   FileCheck,
+  RefreshCw,
+  Clock,
 } from 'lucide-react';
-import { Photographer, Album, BookingInquiry, AlbumPage } from '../types';
-import { POINT_PRICE_INR, ALBUM_COST_POINTS, LOW_BALANCE_THRESHOLD } from '../data/mockData';
+import { Photographer, Album, BookingInquiry, AlbumPage, PointSettings } from '../types';
+import {
+  LOW_BALANCE_THRESHOLD,
+  getDaysRemaining,
+  formatDisplayDate,
+  generateUnguessableId,
+} from '../data/mockData';
 import {
   compressMultipleFilesParallel,
   splitPanoramicSpread,
   CompressionProgress,
-  CompressedImageResult,
 } from '../utils/imageCompression';
 import { audioEngine } from '../utils/audio';
 
@@ -37,8 +43,10 @@ interface PhotographerDashboardProps {
   photographer: Photographer;
   albums: Album[];
   inquiries: BookingInquiry[];
+  pointSettings: PointSettings;
   onOpenRecharge: () => void;
   onCreateAlbum: (albumData: Omit<Album, 'id' | 'viewsCount' | 'createdAt'>) => boolean;
+  onRenewAlbum: (albumId: string) => boolean;
   onDeleteAlbum: (albumId: string) => void;
   onViewAlbum: (album: Album) => void;
   onOpenInquiryReply: (phone: string, coupleName?: string) => void;
@@ -48,8 +56,10 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
   photographer,
   albums,
   inquiries,
+  pointSettings,
   onOpenRecharge,
   onCreateAlbum,
+  onRenewAlbum,
   onDeleteAlbum,
   onViewAlbum,
   onOpenInquiryReply,
@@ -66,7 +76,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
   const [eventDate, setEventDate] = useState('');
   const [musicTrack, setMusicTrack] = useState('velvet-piano');
   const [customMusicUrl, setCustomMusicUrl] = useState('');
-  const [allowBulkDownload, setAllowBulkDownload] = useState(false); // DEFAULT OFF as requested
+  const [allowBulkDownload, setAllowBulkDownload] = useState(false); // DEFAULT OFF
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
   const [password, setPassword] = useState('2026');
   const [isWatermarked, setIsWatermarked] = useState(true);
@@ -113,7 +123,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
     }
   };
 
-  // Split panoramic spread into left and right leaves
+  // Split panoramic spread
   const handleSplitPage = async (pageIndex: number) => {
     const targetPage = uploadedPages[pageIndex];
     if (!targetPage) return;
@@ -141,7 +151,6 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
       const updated = [...uploadedPages];
       updated.splice(pageIndex, 1, leftPage, rightPage);
 
-      // Re-index page numbers
       const reindexed = updated.map((p, idx) => ({ ...p, pageNumber: idx + 1 }));
       setUploadedPages(reindexed);
       setIsCompressing(false);
@@ -161,9 +170,9 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
     e.preventDefault();
     setErrorNotice(null);
 
-    if (photographer.points < ALBUM_COST_POINTS) {
+    if (photographer.points < pointSettings.pointsPerAlbum) {
       setErrorNotice(
-        `Insufficient points! Creating an album requires ${ALBUM_COST_POINTS} points. You have ${photographer.points} points. Please recharge your wallet.`
+        `Insufficient points! Creating an album requires ${pointSettings.pointsPerAlbum} points. You have ${photographer.points} points. Please recharge your wallet.`
       );
       return;
     }
@@ -173,9 +182,12 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
       return;
     }
 
-    const shareCode = `a1-${coupleName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Math.random()
-      .toString(36)
-      .substring(2, 6)}`;
+    // 1-Year Live Validity Calculation (365 days)
+    const now = new Date();
+    const expiresDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const graceDate = new Date(expiresDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const shareCode = generateUnguessableId();
 
     const success = onCreateAlbum({
       shareCode,
@@ -194,13 +206,14 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
       allowBulkDownload,
       isPasswordProtected,
       password: isPasswordProtected ? password : undefined,
+      expiresAt: expiresDate.toISOString(),
+      gracePeriodEndsAt: graceDate.toISOString(),
       isWatermarked,
       watermarkText,
       description,
     });
 
     if (success) {
-      // Reset Form
       setEventName('');
       setCoupleName('');
       setClientPhone('');
@@ -231,7 +244,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                   Low Point Balance Alert ({photographer.points} Points Remaining)
                 </h4>
                 <p className="text-xs text-neutral-300">
-                  You need at least {ALBUM_COST_POINTS} points to publish a new wedding album. Recharge now to avoid client delivery interruption.
+                  You need at least {pointSettings.pointsPerAlbum} points to publish a new wedding album. Recharge now to avoid client delivery interruption.
                 </p>
               </div>
             </div>
@@ -239,12 +252,12 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
               onClick={onOpenRecharge}
               className="px-5 py-2.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] shrink-0 cursor-pointer"
             >
-              Recharge Points (₹89/pt)
+              Recharge Points Now
             </button>
           </div>
         )}
 
-        {/* Studio Top Profile & Stat Grid */}
+        {/* Studio Top Profile & Wallet Stat Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Studio Profile Card */}
           <div className="lg:col-span-2 bg-neutral-950 border border-neutral-800 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
@@ -279,17 +292,17 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                 <span className="text-3xl font-extrabold text-white font-mono">{photographer.points}</span>
                 <span className="text-xs text-neutral-400">Points Available</span>
               </div>
-              <p className="text-[11px] text-lime-400 mt-1">
-                ≈ ₹{(photographer.points * POINT_PRICE_INR).toLocaleString('en-IN')} wallet value
+              <p className="text-[11px] text-neutral-500 mt-1">
+                1 Album = {pointSettings.pointsPerAlbum} Points · 1 Renewal = {pointSettings.renewalPointsPerAlbum} Point
               </p>
             </div>
 
             <button
               onClick={onOpenRecharge}
-              className="w-full py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(163,230,53,0.25)] cursor-pointer"
+              className="w-full py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(163,230,53,0.25)] cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Buy Points via Razorpay</span>
+              <span>Recharge Points (Min 1 Pt)</span>
             </button>
           </div>
 
@@ -343,7 +356,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Create New Album (-10 Pts)</span>
+            <span>Create New Album (-{pointSettings.pointsPerAlbum} Pts)</span>
           </button>
           <button
             onClick={() => setActiveTab('inquiries')}
@@ -368,7 +381,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                 </div>
                 <h3 className="text-lg font-bold text-white">No Wedding Albums Yet</h3>
                 <p className="text-xs text-neutral-400 max-w-sm mx-auto">
-                  Transform static photos into luxury 3D digital flipbooks with background music and client WhatsApp sharing.
+                  Transform static photos into luxury 3D digital flipbooks with 1-year live validity and client WhatsApp sharing.
                 </p>
                 <button
                   onClick={() => setActiveTab('create')}
@@ -379,107 +392,148 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {studioAlbums.map((album) => (
-                  <div
-                    key={album.id}
-                    className="bg-neutral-950 border border-neutral-800 hover:border-lime-400/40 rounded-2xl overflow-hidden shadow-lg transition-all group flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Album Cover with Badges */}
-                      <div className="w-full h-48 relative overflow-hidden bg-neutral-900">
-                        <img
-                          src={album.coverImage}
-                          alt={album.coupleName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                {studioAlbums.map((album) => {
+                  const daysLeft = getDaysRemaining(album.expiresAt);
+                  const isExpired = daysLeft <= 0;
+                  const isExpiringSoon = daysLeft > 0 && daysLeft <= 30;
 
-                        {/* Top Badges */}
-                        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                          <span className="bg-black/80 backdrop-blur-md border border-neutral-700 text-lime-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                            {album.pages.length} Pages
-                          </span>
+                  return (
+                    <div
+                      key={album.id}
+                      className="bg-neutral-950 border border-neutral-800 hover:border-lime-400/40 rounded-2xl overflow-hidden shadow-lg transition-all group flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Album Cover with Badges */}
+                        <div className="w-full h-48 relative overflow-hidden bg-neutral-900">
+                          <img
+                            src={album.coverImage}
+                            alt={album.coupleName}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-                          <div className="flex items-center gap-1.5">
-                            {album.isPasswordProtected && (
-                              <span
-                                className="bg-neutral-900/90 text-amber-300 p-1 rounded-full border border-neutral-700"
-                                title="Password Protected"
-                              >
-                                <Lock className="w-3 h-3" />
-                              </span>
-                            )}
-                            {album.allowBulkDownload && (
-                              <span
-                                className="bg-neutral-900/90 text-emerald-300 p-1 rounded-full border border-neutral-700"
-                                title="Bulk Download Enabled"
-                              >
-                                <Download className="w-3 h-3" />
-                              </span>
-                            )}
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                            <span className="bg-black/80 backdrop-blur-md border border-neutral-700 text-lime-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                              {album.pages.length} {album.pages.length === 1 ? 'Page' : 'Pages'}
+                            </span>
+
+                            <div className="flex items-center gap-1.5">
+                              {album.isPasswordProtected && (
+                                <span
+                                  className="bg-neutral-900/90 text-amber-300 p-1 rounded-full border border-neutral-700"
+                                  title="Password Protected"
+                                >
+                                  <Lock className="w-3 h-3" />
+                                </span>
+                              )}
+                              {album.allowBulkDownload && (
+                                <span
+                                  className="bg-neutral-900/90 text-emerald-300 p-1 rounded-full border border-neutral-700"
+                                  title="Bulk Download Enabled"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Bottom Overlay Title */}
+                          <div className="absolute bottom-3 left-3 right-3">
+                            <p className="text-[10px] uppercase font-semibold tracking-wider text-lime-400">
+                              {album.eventName}
+                            </p>
+                            <h4 className="text-base font-bold text-white truncate">{album.coupleName}</h4>
                           </div>
                         </div>
 
-                        {/* Bottom Overlay Title */}
-                        <div className="absolute bottom-3 left-3 right-3">
-                          <p className="text-[10px] uppercase font-semibold tracking-wider text-lime-400">
-                            {album.eventName}
-                          </p>
-                          <h4 className="text-base font-bold text-white truncate">{album.coupleName}</h4>
-                        </div>
-                      </div>
-
-                      {/* Details & Metrics */}
-                      <div className="p-4 space-y-3">
-                        <div className="flex items-center justify-between text-xs text-neutral-400">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-                            <span>{album.eventDate}</span>
-                          </div>
-                          <div className="flex items-center gap-1 font-mono text-lime-400">
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>{album.viewsCount} Views</span>
-                          </div>
-                        </div>
-
-                        {/* Client Share Link Widget */}
-                        <div className="p-2.5 rounded-xl bg-neutral-900/90 border border-neutral-800/80 flex items-center justify-between text-xs">
-                          <div className="truncate mr-2">
-                            <p className="text-[10px] text-neutral-500">Client Link Code</p>
-                            <span className="font-mono text-neutral-300">{album.shareCode}</span>
-                          </div>
-                          <button
-                            onClick={() => handleCopyLink(album.shareCode)}
-                            className="px-2.5 py-1 rounded-md bg-neutral-800 hover:bg-lime-400 hover:text-black text-neutral-300 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                        {/* Validity & Metrics Box */}
+                        <div className="p-4 space-y-3">
+                          {/* Expiry Pill */}
+                          <div
+                            className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-mono ${
+                              isExpired
+                                ? 'bg-red-950/40 border-red-500/40 text-red-300'
+                                : isExpiringSoon
+                                ? 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+                                : 'bg-neutral-900/80 border-neutral-800 text-neutral-300'
+                            }`}
                           >
-                            <Copy className="w-3 h-3" />
-                            <span>{copiedCode === album.shareCode ? 'Copied!' : 'Copy'}</span>
-                          </button>
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>Expires: {formatDisplayDate(album.expiresAt)}</span>
+                            </div>
+                            <span className="font-bold">
+                              {isExpired ? 'EXPIRED' : `${daysLeft} days left`}
+                            </span>
+                          </div>
+
+                          {/* 30-Day Expiry Renewal Warning */}
+                          {(isExpiringSoon || isExpired) && (
+                            <div className="flex items-center justify-between p-2 rounded-lg bg-neutral-900 border border-neutral-800 text-xs">
+                              <span className="text-[11px] text-neutral-400">
+                                Extend +1 Year ({pointSettings.renewalPointsPerAlbum} Pt):
+                              </span>
+                              <button
+                                onClick={() => onRenewAlbum(album.id)}
+                                className="px-2.5 py-1 rounded bg-lime-400 hover:bg-lime-300 text-black font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                                <span>Renew (+1 Yr)</span>
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between text-xs text-neutral-400">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+                              <span>{formatDisplayDate(album.eventDate)}</span>
+                            </div>
+                            <div className="flex items-center gap-1 font-mono text-lime-400">
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>{album.viewsCount} Views</span>
+                            </div>
+                          </div>
+
+                          {/* Unguessable Client Link Widget */}
+                          <div className="p-2.5 rounded-xl bg-neutral-900/90 border border-neutral-800/80 flex items-center justify-between text-xs">
+                            <div className="truncate mr-2">
+                              <p className="text-[10px] text-neutral-500">Unguessable Client Link</p>
+                              <span className="font-mono text-neutral-300">{album.shareCode}</span>
+                            </div>
+                            <button
+                              onClick={() => handleCopyLink(album.shareCode)}
+                              className="px-2.5 py-1 rounded-md bg-neutral-800 hover:bg-lime-400 hover:text-black text-neutral-300 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>{copiedCode === album.shareCode ? 'Copied!' : 'Copy'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="p-4 pt-0 grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => onViewAlbum(album)}
-                        className="col-span-2 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-[0_0_12px_rgba(163,230,53,0.2)]"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Open 3D Book</span>
-                      </button>
+                      {/* Action Buttons */}
+                      <div className="p-4 pt-0 grid grid-cols-3 gap-2">
+                        <button
+                          onClick={() => onViewAlbum(album)}
+                          className="col-span-2 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-[0_0_12px_rgba(163,230,53,0.2)]"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Open 3D Book</span>
+                        </button>
 
-                      <button
-                        onClick={() => setQrModalAlbum(album)}
-                        className="py-2 rounded-xl bg-neutral-900 border border-neutral-700 hover:border-lime-400/50 text-neutral-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                        title="Show Wedding QR Code"
-                      >
-                        <QrCode className="w-3.5 h-3.5 text-lime-400" />
-                        <span>QR</span>
-                      </button>
+                        <button
+                          onClick={() => setQrModalAlbum(album)}
+                          className="py-2 rounded-xl bg-neutral-900 border border-neutral-700 hover:border-lime-400/50 text-neutral-300 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          title="Show Wedding QR Code"
+                        >
+                          <QrCode className="w-3.5 h-3.5 text-lime-400" />
+                          <span>QR</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -492,7 +546,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
               <div>
                 <h3 className="text-xl font-bold text-white">Create New Digital Wedding Album</h3>
                 <p className="text-xs text-neutral-400">
-                  Will use <span className="text-lime-400 font-bold">10 Points (₹890)</span> from your studio wallet
+                  Will use <span className="text-lime-400 font-bold">{pointSettings.pointsPerAlbum} Points</span> from your studio wallet (Valid for 365 Days)
                 </p>
               </div>
               <span className="text-xs font-mono bg-lime-950/40 border border-lime-500/40 text-lime-400 px-3 py-1 rounded-full">
@@ -574,11 +628,10 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                     </p>
                   </div>
                   <span className="text-xs font-mono text-neutral-400">
-                    {uploadedPages.length} Pages Ready
+                    {uploadedPages.length} {uploadedPages.length === 1 ? 'Page' : 'Pages'} Ready
                   </span>
                 </div>
 
-                {/* Upload Box */}
                 <div className="border-2 border-dashed border-neutral-700 hover:border-lime-400/60 rounded-2xl p-6 text-center transition-colors bg-neutral-900/40 relative">
                   <input
                     type="file"
@@ -601,7 +654,6 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Compression Progress Indicator */}
                 {isCompressing && compressionProgress && (
                   <div className="p-4 rounded-xl bg-neutral-900 border border-lime-400/30 space-y-2 animate-pulse">
                     <div className="flex items-center justify-between text-xs">
@@ -627,7 +679,6 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                   </div>
                 )}
 
-                {/* Uploaded Thumbnail Strip & Spread Splitter */}
                 {uploadedPages.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-neutral-400 font-medium">
@@ -644,7 +695,6 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                             {idx + 1}
                           </div>
 
-                          {/* Hover Actions: Split & Delete */}
                           <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1">
                             <button
                               type="button"
@@ -792,7 +842,7 @@ export const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({
                   className="w-full py-4 rounded-full bg-lime-400 hover:bg-lime-300 text-black font-extrabold text-sm transition-all shadow-[0_0_25px_rgba(163,230,53,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Deduct 10 Points (₹890) & Publish 3D Wedding Album</span>
+                  <span>Deduct {pointSettings.pointsPerAlbum} Points & Publish 1-Year Valid Wedding Album</span>
                 </button>
               </div>
             </form>

@@ -13,11 +13,14 @@ import { RazorpayModal } from './components/RazorpayModal';
 import { StudioInquiryModal } from './components/StudioInquiryModal';
 import { PhotoShareModal } from './components/PhotoShareModal';
 import { AuthModal } from './components/AuthModal';
+import { WhatsAppHelpDesk } from './components/WhatsAppHelpDesk';
 import {
   Photographer,
   Album,
   BookingInquiry,
   PointTransaction,
+  PointSettings,
+  RateChangeLog,
 } from './types';
 import {
   loadStoredPhotographers,
@@ -28,8 +31,10 @@ import {
   saveStoredInquiries,
   loadStoredTransactions,
   saveStoredTransactions,
-  ALBUM_COST_POINTS,
-  POINT_PRICE_INR,
+  loadStoredSettings,
+  saveStoredSettings,
+  loadStoredRateLogs,
+  saveStoredRateLogs,
 } from './data/mockData';
 
 export default function App() {
@@ -38,11 +43,11 @@ export default function App() {
   const [albums, setAlbums] = useState<Album[]>(loadStoredAlbums);
   const [inquiries, setInquiries] = useState<BookingInquiry[]>(loadStoredInquiries);
   const [transactions, setTransactions] = useState<PointTransaction[]>(loadStoredTransactions);
+  const [pointSettings, setPointSettings] = useState<PointSettings>(loadStoredSettings);
+  const [rateLogs, setRateLogs] = useState<RateChangeLog[]>(loadStoredRateLogs);
 
   // Authentication & Session
-  const [currentPhotographer, setCurrentPhotographer] = useState<Photographer | null>(
-    photographers.length > 0 ? photographers[0] : null
-  );
+  const [currentPhotographer, setCurrentPhotographer] = useState<Photographer | null>(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
 
   // Navigation View
@@ -77,7 +82,15 @@ export default function App() {
     saveStoredTransactions(transactions);
   }, [transactions]);
 
-  // Handle URL hash changes (e.g. for shareable client link #album-a1-royal-udaipur-98x)
+  useEffect(() => {
+    saveStoredSettings(pointSettings);
+  }, [pointSettings]);
+
+  useEffect(() => {
+    saveStoredRateLogs(rateLogs);
+  }, [rateLogs]);
+
+  // Handle URL hash changes (for client shareable link #album-a1-xxxx)
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
@@ -95,7 +108,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHash);
   }, [albums]);
 
-  // Keep active photographer up to date with state modifications
+  // Keep active photographer up to date with points modifications
   useEffect(() => {
     if (currentPhotographer) {
       const updated = photographers.find((p) => p.id === currentPhotographer.id);
@@ -105,17 +118,18 @@ export default function App() {
     }
   }, [photographers]);
 
-  // Handlers for Photographer Actions
+  // Create Album Handler
   const handleCreateAlbum = (newAlbumData: Omit<Album, 'id' | 'viewsCount' | 'createdAt'>): boolean => {
     if (!currentPhotographer) return false;
-    if (currentPhotographer.points < ALBUM_COST_POINTS) return false;
+    if (currentPhotographer.points < pointSettings.pointsPerAlbum) return false;
 
-    // Deduct 10 points
+    // Deduct points based on current settings
+    const cost = pointSettings.pointsPerAlbum;
     const updatedPhotographers = photographers.map((p) =>
       p.id === currentPhotographer.id
         ? {
             ...p,
-            points: p.points - ALBUM_COST_POINTS,
+            points: p.points - cost,
             totalAlbumsCreated: p.totalAlbumsCreated + 1,
           }
         : p
@@ -136,14 +150,85 @@ export default function App() {
       id: 'tx_' + Math.random().toString(36).substring(2, 9),
       photographerId: currentPhotographer.id,
       photographerName: currentPhotographer.studioName,
-      amount: -ALBUM_COST_POINTS,
+      amount: -cost,
       type: 'deduct_album',
       description: `Published 3D Wedding Album: ${newAlbum.eventName} (${newAlbum.coupleName})`,
       date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      rateAppliedInr: pointSettings.pricePerPointInr,
     };
     setTransactions((prev) => [newTx, ...prev]);
 
     return true;
+  };
+
+  // Renew Album Handler (+1 Year)
+  const handleRenewAlbum = (albumId: string): boolean => {
+    if (!currentPhotographer) return false;
+    const renewalCost = pointSettings.renewalPointsPerAlbum;
+    if (currentPhotographer.points < renewalCost) {
+      setRechargeModalOpen(true);
+      return false;
+    }
+
+    // Deduct renewal point
+    setPhotographers((prev) =>
+      prev.map((p) =>
+        p.id === currentPhotographer.id ? { ...p, points: p.points - renewalCost } : p
+      )
+    );
+
+    // Extend expiry date by 365 days
+    setAlbums((prev) =>
+      prev.map((a) => {
+        if (a.id === albumId) {
+          const currentExpiry = new Date(a.expiresAt).getTime();
+          const baseTime = currentExpiry > Date.now() ? currentExpiry : Date.now();
+          const newExpiry = new Date(baseTime + 365 * 24 * 60 * 60 * 1000);
+          const newGrace = new Date(newExpiry.getTime() + 30 * 24 * 60 * 60 * 1000);
+          return {
+            ...a,
+            expiresAt: newExpiry.toISOString(),
+            gracePeriodEndsAt: newGrace.toISOString(),
+          };
+        }
+        return a;
+      })
+    );
+
+    const targetAlbum = albums.find((a) => a.id === albumId);
+    const newTx: PointTransaction = {
+      id: 'tx_' + Math.random().toString(36).substring(2, 9),
+      photographerId: currentPhotographer.id,
+      photographerName: currentPhotographer.studioName,
+      amount: -renewalCost,
+      type: 'renew_album',
+      description: `Extended +1 Year Validity for Album: ${targetAlbum?.coupleName || albumId}`,
+      date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      rateAppliedInr: pointSettings.pricePerPointInr,
+    };
+    setTransactions((prev) => [newTx, ...prev]);
+
+    return true;
+  };
+
+  // Admin Manual Validity Extension
+  const handleAdminExtendValidity = (albumId: string, additionalDays: number = 365) => {
+    setAlbums((prev) =>
+      prev.map((a) => {
+        if (a.id === albumId) {
+          const currentExpiry = new Date(a.expiresAt).getTime();
+          const baseTime = currentExpiry > Date.now() ? currentExpiry : Date.now();
+          const newExpiry = new Date(baseTime + additionalDays * 24 * 60 * 60 * 1000);
+          const newGrace = new Date(newExpiry.getTime() + 30 * 24 * 60 * 60 * 1000);
+          return {
+            ...a,
+            expiresAt: newExpiry.toISOString(),
+            gracePeriodEndsAt: newGrace.toISOString(),
+          };
+        }
+        return a;
+      })
+    );
   };
 
   const handleDeleteAlbum = (albumId: string) => {
@@ -151,7 +236,6 @@ export default function App() {
   };
 
   const handleViewAlbum = (album: Album) => {
-    // Increment view count
     setAlbums((prev) =>
       prev.map((a) => (a.id === album.id ? { ...a, viewsCount: a.viewsCount + 1 } : a))
     );
@@ -161,7 +245,12 @@ export default function App() {
   };
 
   // Razorpay Top-up Success
-  const handleRechargeSuccess = (pointsAdded: number, amountPaidInr: number, referenceId: string) => {
+  const handleRechargeSuccess = (
+    pointsAdded: number,
+    amountPaidInr: number,
+    referenceId: string,
+    rateApplied: number
+  ) => {
     if (!currentPhotographer) return;
 
     setPhotographers((prev) =>
@@ -177,6 +266,7 @@ export default function App() {
       amount: pointsAdded,
       type: 'purchase',
       pricePaidInr: amountPaidInr,
+      rateAppliedInr: rateApplied,
       referenceId,
       description: `Recharged ${pointsAdded} Points via Razorpay (${referenceId})`,
       date: new Date().toISOString().replace('T', ' ').substring(0, 16),
@@ -184,7 +274,7 @@ export default function App() {
     setTransactions((prev) => [newTx, ...prev]);
   };
 
-  // Admin Handlers
+  // Admin Adjust Points
   const handleAdminAdjustPoints = (photographerId: string, amount: number, reason: string) => {
     const target = photographers.find((p) => p.id === photographerId);
     if (!target) return;
@@ -203,6 +293,7 @@ export default function App() {
       type: 'admin_adjust',
       description: `Admin Point Adjustment: ${reason}`,
       date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      rateAppliedInr: pointSettings.pricePerPointInr,
     };
     setTransactions((prev) => [newTx, ...prev]);
   };
@@ -214,7 +305,6 @@ export default function App() {
   };
 
   const handleAdminResetPassword = (photographerId: string, newPass: string) => {
-    // In mock store, log password reset action
     const target = photographers.find((p) => p.id === photographerId);
     if (!target) return;
 
@@ -228,6 +318,26 @@ export default function App() {
       date: new Date().toISOString().replace('T', ' ').substring(0, 16),
     };
     setTransactions((prev) => [newTx, ...prev]);
+  };
+
+  // Admin Update Point Rate Settings
+  const handleUpdatePointSettings = (newSettings: PointSettings, reason: string) => {
+    const oldRate = pointSettings.pricePerPointInr;
+    const oldPpa = pointSettings.pointsPerAlbum;
+
+    setPointSettings(newSettings);
+
+    const newLog: RateChangeLog = {
+      id: 'log_' + Math.random().toString(36).substring(2, 9),
+      date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      oldRate,
+      newRate: newSettings.pricePerPointInr,
+      oldPointsPerAlbum: oldPpa,
+      newPointsPerAlbum: newSettings.pointsPerAlbum,
+      changedBy: 'Goldan Patel (Superadmin)',
+      reason,
+    };
+    setRateLogs((prev) => [newLog, ...prev]);
   };
 
   // Inquiry Submission Handler
@@ -251,24 +361,26 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-lime-400 selection:text-black">
-      {/* Top Navbar */}
-      <Navbar
-        currentView={currentView}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          if (view !== 'flipbook') {
-            window.location.hash = '';
-          }
-        }}
-        currentPhotographer={currentPhotographer}
-        isAdminLoggedIn={isAdminLoggedIn}
-        onOpenAuth={(role) => {
-          setAuthRoleTarget(role || 'photographer');
-          setAuthModalOpen(true);
-        }}
-        onLogout={handleLogout}
-        onOpenRecharge={() => setRechargeModalOpen(true)}
-      />
+      {/* Top Navbar (Hidden in Client Flipbook Viewer) */}
+      {currentView !== 'flipbook' && (
+        <Navbar
+          currentView={currentView}
+          onNavigate={(view) => {
+            setCurrentView(view);
+            if (view !== 'flipbook') {
+              window.location.hash = '';
+            }
+          }}
+          currentPhotographer={currentPhotographer}
+          isAdminLoggedIn={isAdminLoggedIn}
+          onOpenAuth={(role) => {
+            setAuthRoleTarget(role || 'photographer');
+            setAuthModalOpen(true);
+          }}
+          onLogout={handleLogout}
+          onOpenRecharge={() => setRechargeModalOpen(true)}
+        />
+      )}
 
       {/* Main View Router */}
       <main>
@@ -290,8 +402,10 @@ export default function App() {
             photographer={currentPhotographer}
             albums={albums}
             inquiries={inquiries}
+            pointSettings={pointSettings}
             onOpenRecharge={() => setRechargeModalOpen(true)}
             onCreateAlbum={handleCreateAlbum}
+            onRenewAlbum={handleRenewAlbum}
             onDeleteAlbum={handleDeleteAlbum}
             onViewAlbum={handleViewAlbum}
             onOpenInquiryReply={(phone) => {
@@ -305,9 +419,14 @@ export default function App() {
             photographers={photographers}
             albums={albums}
             transactions={transactions}
+            pointSettings={pointSettings}
+            rateLogs={rateLogs}
             onAdjustPoints={handleAdminAdjustPoints}
             onToggleBlock={handleAdminToggleBlock}
             onResetPassword={handleAdminResetPassword}
+            onUpdatePointSettings={handleUpdatePointSettings}
+            onExtendAlbumValidity={handleAdminExtendValidity}
+            onDeleteAlbum={handleDeleteAlbum}
             onViewAlbum={handleViewAlbum}
           />
         )}
@@ -325,6 +444,9 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Floating WhatsApp Help Desk Button (Only on Landing, Dashboard, and Admin; NOT on client viewer) */}
+      {currentView !== 'flipbook' && <WhatsAppHelpDesk />}
 
       {/* AUTH MODAL */}
       <AuthModal
@@ -350,6 +472,7 @@ export default function App() {
           isOpen={rechargeModalOpen}
           onClose={() => setRechargeModalOpen(false)}
           currentPoints={currentPhotographer.points}
+          pricePerPointInr={pointSettings.pricePerPointInr}
           onSuccess={handleRechargeSuccess}
         />
       )}
